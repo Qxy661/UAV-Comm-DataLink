@@ -2,6 +2,8 @@
 
 > 预计阅读：25 分钟 | 前置知识：MAVLink 协议基础
 
+> **相关文档：** [MissionPlanner 高级功能](./03-MissionPlanner高级功能.md) | [MAVLink 通信编程](../02-MAVLink协议/03-MAVLink通信编程.md)
+
 ---
 
 ## 1. QGroundControl 概述

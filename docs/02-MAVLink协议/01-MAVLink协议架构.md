@@ -34,6 +34,8 @@ MAVLink（Micro Air Vehicle Link）是一种轻量级的通信协议，专为无
 
 **推荐使用 MAVLink v2**，除非需要与仅支持 v1 的旧设备通信。
 
+> **相关文档：** [MAVLink 通信编程](./03-MAVLink通信编程.md) | [数据链架构](../03-数据链设计/01-数据链架构.md)
+
 ---
 
 ## 2. MAVLink 消息格式
