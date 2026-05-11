@@ -565,6 +565,74 @@ gcc -o mavlink_example mavlink_example.c -I/usr/local/include
 # target_link_libraries(myapp MAVLink)
 ```
 
+### 6.3 嵌入式 MAVLink 解析（STM32/Pixhawk）
+
+以下示例针对 STM32 HAL 环境，适用于 Pixhawk 等飞控硬件的裸机或 RTOS 部署。
+
+```c
+// Embedded MAVLink parsing on STM32/Pixhawk
+// Using MAVLink C header library (auto-generated from mavlink repo)
+
+#include "mavlink/common/mavlink.h"
+
+// UART receive callback - parse incoming MAVLink bytes
+volatile mavlink_message_t msg;
+volatile mavlink_status_t status;
+
+void USART2_IRQHandler(void) {
+    if (USART2->SR & USART_SR_RXNE) {
+        uint8_t byte = USART2->DR;
+        if (mavlink_parse_char(MAVLINK_COMM_0, byte, &msg, &status)) {
+            // Message complete - dispatch by ID
+            switch (msg.msgid) {
+                case MAVLINK_MSG_ID_HEARTBEAT:
+                    handle_heartbeat(&msg);
+                    break;
+                case MAVLINK_MSG_ID_COMMAND_LONG:
+                    handle_command(&msg);
+                    break;
+                case MAVLINK_MSG_ID_SET_POSITION_TARGET_LOCAL_NED:
+                    handle_position_target(&msg);
+                    break;
+            }
+        }
+    }
+}
+
+// Send attitude telemetry
+void send_attitude(float roll, float pitch, float yaw,
+                   float roll_rate, float pitch_rate, float yaw_rate) {
+    mavlink_msg_attitude_pack(
+        1,    // system ID
+        1,    // component ID
+        &msg,
+        HAL_GetTick(),  // timestamp ms
+        roll, pitch, yaw,
+        roll_rate, pitch_rate, yaw_rate
+    );
+    uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+    uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
+    HAL_UART_Transmit(&huart2, buf, len, 100);
+}
+
+// Heartbeat at 1Hz (call from timer interrupt)
+void send_heartbeat(void) {
+    mavlink_msg_heartbeat_pack(
+        1, 1, &msg,
+        MAV_TYPE_QUADROTOR,
+        MAV_AUTOPILOT_PX4,
+        MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
+        custom_mode,    // e.g., PX4 offboard mode
+        MAV_STATE_ACTIVE
+    );
+    uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+    uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
+    HAL_UART_Transmit(&huart2, buf, len, 100);
+}
+```
+
+> **安全提示：** 在生产环境中部署时，应启用 MAVLink 消息签名（Message Signing）以防止中间人攻击和命令注入。详见 [MAVLink 安全与扩展](./05-MAVLink安全与扩展.md)。
+
 ---
 
 ## 7. 常见问题与调试
