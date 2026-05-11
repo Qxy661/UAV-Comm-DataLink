@@ -84,6 +84,36 @@ conn.mav.command_long_send(
 )
 ```
 
+### 2.4 AutoTune 完整脚本（pymavlink）
+
+以下脚本演示如何通过 pymavlink 连接飞控、切换 AutoTune 模式并实时监控调参进度：
+
+```python
+# MissionPlanner AutoTune via MAVLink
+from pymavlink import mavutil
+
+conn = mavutil.mavlink_connection('udp:14550')
+conn.wait_heartbeat()
+print(f"Connected: system {conn.target_system}, component {conn.target_component}")
+
+# Switch to AutoTune mode (PX4: OFFBOARD with tune flag, ArduPilot: AUTOTUNE mode)
+conn.set_mode_apm(15)  # ArduPilot AUTOTUNE mode number
+print("Switched to AutoTune mode, monitoring tune progress...")
+
+# Monitor tune progress — ATTITUDE_TARGET contains the demanded rates
+while True:
+    msg = conn.recv_match(type='ATTITUDE_TARGET', blocking=True, timeout=5)
+    if msg:
+        print(f"Roll rate: {msg.body_roll_rate:.2f}  "
+              f"Pitch rate: {msg.body_pitch_rate:.2f}  "
+              f"Yaw rate: {msg.body_yaw_rate:.2f}")
+    else:
+        print("No ATTITUDE_TARGET received (tune may have completed)")
+        break
+```
+
+> **提示：** AutoTune 期间请确保 GPS 定位良好、电池电量充足，且在开阔场地飞行。调参完成后务必在 Loiter 模式下试飞验证。
+
 ---
 
 ## 3. 地理围栏（GeoFence）
